@@ -4,6 +4,9 @@
 #include <WiFi.h>
 #include <secrets.h>
 #include <PubSubClient.h>
+#include <ESPmDNS.h>
+#include <WiFiUdp.h>
+#include <ArduinoOTA.h>
 
 #include <animations/i_animation.h>
 #include <render_utils.h>
@@ -180,9 +183,9 @@ void ConnectToWifi() {
     while (millis() - connectStartTime < 10000)
     {
         Serial.print(".");
-        Core0WDSend(millis());
+        // Core0WDSend(millis());
         delay(1000);
-        Core0WDSend(millis());
+        // Core0WDSend(millis());
         if(WiFi.status() == WL_CONNECTED) {
           Serial.println("connected to wifi");
           return;
@@ -254,6 +257,46 @@ void SendMonitorMsg(char *buffer, size_t bufferSize) {
 void MonitorLoop( void * parameter) {
 
   ConnectToWifi();
+  // Port defaults to 3232
+  // ArduinoOTA.setPort(3232);
+
+  // Hostname defaults to esp3232-[MAC]
+  ArduinoOTA.setHostname(THING_NAME);
+
+  // No authentication by default
+  // ArduinoOTA.setPassword("admin");
+
+  // Password can be set with it's md5 value as well
+  // MD5(admin) = 21232f297a57a5a743894a0e4a801fc3
+  // ArduinoOTA.setPasswordHash("21232f297a57a5a743894a0e4a801fc3");
+
+  ArduinoOTA
+    .onStart([]() {
+      String type;
+      if (ArduinoOTA.getCommand() == U_FLASH)
+        type = "sketch";
+      else // U_SPIFFS
+        type = "filesystem";
+
+      // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
+      Serial.println("Start updating " + type);
+    })
+    .onEnd([]() {
+      Serial.println("\nEnd");
+    })
+    .onProgress([](unsigned int progress, unsigned int total) {
+      Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+    })
+    .onError([](ota_error_t error) {
+      Serial.printf("Error[%u]: ", error);
+      if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
+      else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
+      else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
+      else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
+      else if (error == OTA_END_ERROR) Serial.println("End Failed");
+    });
+
+  ArduinoOTA.begin();
   songOffsetTracker.setup();
   unsigned int lastReportTime = millis();
   unsigned int lastMonitorTime = millis();
@@ -263,7 +306,7 @@ void MonitorLoop( void * parameter) {
     ConnectToMessageBroker();
     CheckForSongStartTimeChange();
     unsigned int currTime = millis();
-    Core0WDSend(currTime);
+    // Core0WDSend(currTime);
     if (currTime - lastMonitorTime >= 1000) {
       char monitorMsg[128];
       SendMonitorMsg(monitorMsg, 128);
@@ -281,6 +324,7 @@ void MonitorLoop( void * parameter) {
     }
     client.loop();
     songOffsetTracker.loop();
+    ArduinoOTA.handle();
 
     vTaskDelay(5);
   }
@@ -333,7 +377,7 @@ unsigned int lastPrint1Time = millis();
 void loop() {
 
   unsigned long currentMillis = millis();
-  Core0WdReceive(currentMillis);
+  // Core0WdReceive(currentMillis);
 
   if(currentMillis - lastPrint1Time >= 5000) {
     Serial.println("[1] core 1 alive");
