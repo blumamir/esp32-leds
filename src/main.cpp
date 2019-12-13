@@ -14,6 +14,7 @@
 #include <animations_container.h>
 #include <fs_manager.h>
 #include <animation_factory.h>
+#include <segments_store.h>
 
 #include "SPIFFS.h"
 
@@ -38,6 +39,7 @@ RenderUtils renderUtils(leds_hsv, NUM_LEDS);
 SongOffsetTracker songOffsetTracker;
 AnimationsContainer animationsContainer;
 FsManager fsManager;
+SegmentsStore segmentsStore;
 
 TaskHandle_t Task1;
 
@@ -225,14 +227,17 @@ void ConnectToMessageBroker() {
 
 void HandleObjectsConfig(File &f) {
 
-  int totalPixels = AnimationFactory::InitObjectsConfig(leds_hsv, doc, f);
-  if(AnimationFactory::objectsMapErrorString == NULL) {
-    Serial.print("total pixels: ");
-    Serial.println(totalPixels);
-  } else {
-    Serial.print("objects map encountered an error while initializing: ");
-    Serial.println(AnimationFactory::objectsMapErrorString);
-  }
+  int totalSegments = segmentsStore.InitFromFile(leds_hsv, f);
+  Serial.print("total segments: "); Serial.println(totalSegments);
+
+  // int totalPixels = AnimationFactory::InitObjectsConfig(leds_hsv, doc, f);
+  // if(AnimationFactory::objectsMapErrorString == NULL) {
+  //   Serial.print("total pixels: ");
+  //   Serial.println(totalPixels);
+  // } else {
+  //   Serial.print("objects map encountered an error while initializing: ");
+  //   Serial.println(AnimationFactory::objectsMapErrorString);
+  // }
 }
 
 void DeleteAnListPtr() {
