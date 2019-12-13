@@ -12,32 +12,82 @@
 #include <animations/rand_brightness.h>
 #include <animations/rand_sat.h>
 
+#include <pb_common.h>
+#include <pb_decode.h>
+#include <object_config.pb.h>
+
 #include <Arduino.h>
 
 AnimationFactory::LedObjectMap AnimationFactory::object_map;
 const char *AnimationFactory::objectsMapErrorString = "no configuration availible - initialized not called";
 
+bool SegmentIndex_callback(pb_istream_t *stream, const pb_field_t *field, void **arg)
+{
+  if(stream == NULL || field->tag != Segment_indices_tag)
+    return false;
+
+  Segment *segment = (Segment *)(*arg);
+
+  uint32_t index;
+  if (!pb_decode_varint32(stream, &index))
+      return false;
+
+  return true;
+}
+
+bool ControllerObjectsConfig_callback(pb_istream_t *stream, const pb_field_t *field, void **arg)
+{
+  if(stream == NULL || field->tag != ControllerObjectsConfig_segments_tag)
+    return false;
+
+  Segment segment = {};
+  segment.indices.funcs.decode = &SegmentIndex_callback;
+  segment.indices.arg = &segment;
+
+  if (!pb_decode(stream, Segment_fields, &segment))
+      return false;
+
+  Serial.println(segment.name);
+
+  return true;    
+}
+
 int AnimationFactory::InitObjectsConfig(HSV ledsArr[], JsonDocument &doc, File &f) {
 
-  DeserializationError jsonError = deserializeJson(doc, f);
-  if(jsonError) {
-    objectsMapErrorString = "json deserialize error";
+  uint8_t buffer[4096];
+  int msgSize = f.read(buffer, 4096);
+
+  ControllerObjectsConfig message = ControllerObjectsConfig_init_zero;
+  message.segments.funcs.decode = &ControllerObjectsConfig_callback;
+  pb_istream_t stream = pb_istream_from_buffer(buffer, msgSize);
+
+  bool status = pb_decode(&stream, ControllerObjectsConfig_fields, &message);
+  if(!status)
+  {
+    objectsMapErrorString = "protobuf decode failed";
     return 0;
   }
 
-  int totalPixels = doc["total_pixels"];
-  if(totalPixels < 0) {
-    objectsMapErrorString = "total pixels is negative";
-    return 0;
-  }
+
+  // DeserializationError jsonError = deserializeJson(doc, f);
+  // if(jsonError) {
+  //   objectsMapErrorString = "json deserialize error";
+  //   return 0;
+  // }
+
+  uint32_t totalPixels = message.number_of_pixels;
   if(totalPixels > MAX_SUPPORTED_PIXELS) {
-    objectsMapErrorString = "total pixels too large";
+    objectsMapErrorString = "number_of_pixels too large";
     return 0;
   }
   if(totalPixels == 0) {
-    objectsMapErrorString = "total pixels is zero (probably error in json format)";
+    objectsMapErrorString = "number_of_pixels is zero";
     return 0;
   }
+
+  Serial.println(totalPixels);
+  objectsMapErrorString = "not done yet";
+  return 0;
 
   const JsonObject &objectsMap = doc["objects"];
   const char *objectsMapErr = InitObjectsMap(ledsArr, totalPixels, objectsMap);
