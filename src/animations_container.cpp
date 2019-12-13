@@ -3,13 +3,13 @@
 #include <SPIFFS.h>
 #include <animation_factory.h>
 
-const AnimationsContainer::AnimationsList *AnimationsContainer::SetFromJsonFile(const String &songName, JsonDocument &docForParsing) {
+const AnimationsContainer::AnimationsList *AnimationsContainer::SetFromJsonFile(const String &songName, JsonDocument &docForParsing, const SegmentsStore &segmentStore) {
 
   bool success = InitJsonDocFromFile(songName, docForParsing);
   if(!success) {
     return nullptr;
   }
-  return AnimationFactory::AnimationsListFromJson(docForParsing);
+  return AnimationFactory::AnimationsListFromJson(docForParsing, segmentStore);
 }
 
 bool AnimationsContainer::InitJsonDocFromFile(const String &songName, JsonDocument &docForParsing) 

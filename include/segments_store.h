@@ -18,6 +18,7 @@ class SegmentsStore
 {
     public:
         bool InitFromFile(HSV ledsArr[], File &f);
+        const std::vector<HSV *> *GetPixelsVecBySegmentName(const std::string &segmentName) const;
 
     public:
         bool IsInitialized() const { return m_initialized; }

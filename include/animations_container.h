@@ -8,6 +8,7 @@
 
 #include <hsv.h>
 #include <animations/i_animation.h>
+#include <segments_store.h>
 
 class AnimationsContainer 
 {
@@ -16,7 +17,7 @@ public:
     typedef std::list<IAnimation *> AnimationsList;
 
 public:
-    const AnimationsList *SetFromJsonFile(const String &songName, JsonDocument &docForParsing);
+    const AnimationsList *SetFromJsonFile(const String &songName, JsonDocument &docForParsing, const SegmentsStore &segmentStore);
 
 private:
     static bool InitJsonDocFromFile(const String &songName, JsonDocument &docForParsing);

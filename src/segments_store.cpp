@@ -172,3 +172,13 @@ bool SegmentsStore::InitFromFile(HSV ledsArr[], File &f)
 
     return true;
 }
+
+const std::vector<HSV *> *SegmentsStore::GetPixelsVecBySegmentName(const std::string &segmentName) const
+{
+    SegmentsMap::const_iterator pixelsPtrIt = m_segmentsMap.find(segmentName);
+    if(pixelsPtrIt == m_segmentsMap.end()) {
+        return nullptr;
+    }
+
+    return pixelsPtrIt->second;
+}

@@ -118,7 +118,7 @@ void SendAnListUpdate()
       msg.songStartTime = lastReportedSongStartTime;
       msg.onlyUpdateTime = false;
       if(msg.songStartTime != 0) {
-        msg.anList = animationsContainer.SetFromJsonFile(currFileName, doc);
+        msg.anList = animationsContainer.SetFromJsonFile(currFileName, doc, segmentsStore);
       }
       else {
         Serial.println("ignoring an list update since song start time is not valid yet");
