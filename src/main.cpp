@@ -15,6 +15,7 @@
 #include <fs_manager.h>
 #include <animation_factory.h>
 #include <segments_store.h>
+#include <protobuf_infra.h>
 
 #include "SPIFFS.h"
 
@@ -227,7 +228,8 @@ void ConnectToMessageBroker() {
 
 void HandleObjectsConfig(File &f) 
 {
-  bool totalSegments = segmentsStore.InitFromFile(leds_hsv, f);
+  pb_istream_t pbInputStream = FileToPbStream(f);
+  bool totalSegments = segmentsStore.InitFromFile(leds_hsv, pbInputStream);
   if(totalSegments)
   {
     Serial.println("successfully parsed and initialized segments store");

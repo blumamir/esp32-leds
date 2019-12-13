@@ -4,7 +4,7 @@
 #include <map>
 #include <string>
 #include <vector>
-#include <SPIFFS.h>
+#include <pb_decode.h>
 #include <hsv.h>
 
 #ifdef NUM_LEDS
@@ -29,7 +29,7 @@ class SegmentsStore
         Init the segments from a protobuf message, taken from file `f`, 
         and set the pixels to point to HSV from buffer `ledsArr` with size NUM_LEDS
         */
-        bool InitFromFile(HSV ledsArr[], File &f);
+        bool InitFromFile(HSV ledsArr[], pb_istream_t stream);
 
         /*
         Givin a segment name `segmentName`, return the pixels in the segment, 

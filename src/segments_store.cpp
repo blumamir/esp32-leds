@@ -102,51 +102,17 @@ bool SegmentsStore::AddSegment(const std::string &segmentName, HSV ledsArr[], In
     return true;
 }
 
-bool FileRead_callback(pb_istream_t *stream, uint8_t *buf, size_t count)
-{
-    File *file = (File*)stream->state;
-    bool status;
-
-    if (buf == nullptr) // TODO: undertans when this might happen
-    {
-        // Notice - orig code:
-        // while (count-- && fgetc(file) != EOF);
-        // return count == 0; 
-
-        // modified code:
-        bool available = file->available();
-        file->seek(count, SeekCur);
-        return (available == count);
-    }
-
-    size_t bytesRead = file->read(buf, count);
-    status = (bytesRead == count);
-
-    if (file->available() == 0)
-    {
-        stream->bytes_left = 0;
-    }
-
-   return status;
-}
-
-bool SegmentsStore::InitFromFile(HSV ledsArr[], File &f)
+bool SegmentsStore::InitFromFile(HSV ledsArr[], pb_istream_t stream)
 {
     if(m_initialized)
         return false;
-
-    // reading the file as stream is memory efficient, as no extra buffer is needed,
-    //      and we don't have to commit for the buffer size in advance.
-    // however - in a small banchmark i tried, the function call time changed from:
-    // 3ms - reading the entire file to buffer
-    // 27ms - reading the buffer as stream.
-    // this makes sense, but should be considered: memory vs. cpu time
-    pb_istream_t stream = {&FileRead_callback, &f, SIZE_MAX};
 
     ControllerObjectsConfig message = ControllerObjectsConfig_init_zero;
 
     // the vector is a temporary storage for the indices while parsed from pb.
     // used so we do not need to reallocate the vector everytime
+    // using std containers is expensive as they do a lot of mallocs and cause
+    // memory fragmentation
     std::vector<uint32_t> indicesVecStorage;
     indicesVecStorage.reserve(NUM_LEDS);
 
