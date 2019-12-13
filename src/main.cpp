@@ -227,8 +227,15 @@ void ConnectToMessageBroker() {
 
 void HandleObjectsConfig(File &f) {
 
-  int totalSegments = segmentsStore.InitFromFile(leds_hsv, f);
-  Serial.print("total segments: "); Serial.println(totalSegments);
+  bool totalSegments = segmentsStore.InitFromFile(leds_hsv, f);
+  if(totalSegments)
+  {
+    Serial.println("successfully parsed and initialized segments store");
+  }
+  else
+  {
+    Serial.println("failed to parse and initialize segments store");
+  }
 
   // int totalPixels = AnimationFactory::InitObjectsConfig(leds_hsv, doc, f);
   // if(AnimationFactory::objectsMapErrorString == NULL) {

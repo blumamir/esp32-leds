@@ -31,6 +31,7 @@ struct SegmentCallbackData
     HSV *ledsArr;
     SegmentsStore::SegmentsMap &segmentsMapToFill;
     IndicesVec &indicesVecStorage;
+    const uint32_t *totalPixels;
 };
 
 /*
@@ -58,22 +59,33 @@ bool DecodeSegment_callback(pb_istream_t *stream, const pb_field_t *field, void 
     size_t numberOfPixelsInSegment = indicesVecStorage.size();
 
     // convert the indices vector, to pixels ptr vector
+    uint32_t totalPixels = *(cbData->totalPixels);
     std::vector<HSV *> *pixelsVecPtr = new std::vector<HSV *>(numberOfPixelsInSegment);
     for(int i=0; i<numberOfPixelsInSegment; i++)
     {
         uint32_t index = indicesVecStorage[i];
+        if(index > totalPixels)
+        {
+            // out of bound access from the config
+            return false;
+        }
         HSV *pixelPtr = &(cbData->ledsArr[index]);
         pixelsVecPtr->at(i) = pixelPtr;
     }
 
     // add this segment to the map
     std::string segmentName(segment.name);
-    cbData->segmentsMapToFill[segmentName] = pixelsVecPtr;
+    std::pair<SegmentsStore::SegmentsMap::iterator ,bool> insertRes = cbData->segmentsMapToFill.insert({segmentName, pixelsVecPtr});
+    if(!insertRes.second)
+    {
+        // failed to insert - object is already in the map!
+        return false;
+    }
 
     return true;    
 }
 
-int SegmentsStore::InitFromFile(HSV ledsArr[], File &f)
+bool SegmentsStore::InitFromFile(HSV ledsArr[], File &f)
 {
     uint8_t buffer[4096];
     int msgSize = f.read(buffer, 4096);
@@ -91,23 +103,24 @@ int SegmentsStore::InitFromFile(HSV ledsArr[], File &f)
     struct SegmentCallbackData segmentCallbackData = {
         .ledsArr = ledsArr, 
         .segmentsMapToFill = m_segmentsMap,
-        .indicesVecStorage = indicesVecStorage
+        .indicesVecStorage = indicesVecStorage,
+        .totalPixels = &message.number_of_pixels
     };
     message.segments.funcs.decode = &DecodeSegment_callback;
     message.segments.arg = &segmentCallbackData;
 
     if(!pb_decode(&stream, ControllerObjectsConfig_fields, &message))
     {
-        return 0;
+        return false;
     }
 
     uint32_t totalPixels = message.number_of_pixels;
     if(totalPixels > MAX_SUPPORTED_PIXELS) {
-        return 0;
+        return false;
     }
     if(totalPixels == 0) {
-        return 0;
+        return false;
     }
 
-    return m_segmentsMap.size();
+    return true;
 }

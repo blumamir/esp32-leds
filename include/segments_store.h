@@ -17,7 +17,7 @@
 class SegmentsStore
 {
     public:
-        int InitFromFile(HSV ledsArr[], File &f);
+        bool InitFromFile(HSV ledsArr[], File &f);
 
     public:
         // the vector is stored as pointer, so it will be allocated once and not move around
