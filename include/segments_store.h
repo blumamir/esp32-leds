@@ -20,7 +20,8 @@ class SegmentsStore
         int InitFromFile(HSV ledsArr[], File &f);
 
     public:
-        typedef std::map<std::string, std::vector<HSV *> > SegmentsMap;
+        // the vector is stored as pointer, so it will be allocated once and not move around
+        typedef std::map<std::string, const std::vector<HSV *> *> SegmentsMap;
         SegmentsMap m_segmentsMap;
 };
 
