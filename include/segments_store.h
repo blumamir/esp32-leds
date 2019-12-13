@@ -13,11 +13,28 @@
 #define MAX_SUPPORTED_PIXELS 1500
 #endif // NUM_LEDS
 
+/*
+In our context, segment is a subset of the pixels which the controller operate,
+along with there order, and a unique name.
 
+This class stores the segments configured for the controller.
+It knows to parse and initialize itself from a protobuf message,
+handle possible errors that might float during this proccess,
+and return the pixels vector associated with each segment.
+*/
 class SegmentsStore
 {
     public:
+        /*
+        Init the segments from a protobuf message, taken from file `f`, 
+        and set the pixels to point to HSV from buffer `ledsArr` with size NUM_LEDS
+        */
         bool InitFromFile(HSV ledsArr[], File &f);
+
+        /*
+        Givin a segment name `segmentName`, return the pixels in the segment, 
+        as vector with pointers to the pixel HSV color
+        */
         const std::vector<HSV *> *GetPixelsVecBySegmentName(const std::string &segmentName) const;
 
     public:
@@ -43,7 +60,7 @@ class SegmentsStore
         // this member will point to a static const char * string 
         // with human description of an error if occured.
         // it is also an indicator for success or failure of class initialization
-        const char *m_errorDesc = NULL;
+        const char *m_errorDesc = "initialize not called yet";
 
         bool m_initialized = false;
 };

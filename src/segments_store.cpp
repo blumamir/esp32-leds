@@ -11,7 +11,7 @@ When the iteration is complete - the vector holds the list of indices for the se
 */
 bool DecodeSegmentIndex_callback(pb_istream_t *stream, const pb_field_t *field, void **arg)
 {
-    if(stream == NULL || field->tag != Segment_indices_tag)
+    if(stream == nullptr || field->tag != Segment_indices_tag)
         return false;
 
     SegmentsStore::IndicesVec *arr = (SegmentsStore::IndicesVec *)(*arg);
@@ -39,7 +39,7 @@ arg - holds 'struct SegmentCallbackData', with data needed to add this segment t
 */
 bool DecodeSegment_callback(pb_istream_t *stream, const pb_field_t *field, void **arg)
 {
-    if(stream == NULL || field->tag != ControllerObjectsConfig_segments_tag)
+    if(stream == nullptr || field->tag != ControllerObjectsConfig_segments_tag)
         return false;
 
     struct SegmentCallbackData *cbData = (struct SegmentCallbackData *)(*arg);
@@ -107,7 +107,7 @@ bool FileRead_callback(pb_istream_t *stream, uint8_t *buf, size_t count)
     File *file = (File*)stream->state;
     bool status;
 
-    if (buf == NULL) // TODO: undertans when this might happen
+    if (buf == nullptr) // TODO: undertans when this might happen
     {
         // Notice - orig code:
         // while (count-- && fgetc(file) != EOF);
@@ -132,6 +132,9 @@ bool FileRead_callback(pb_istream_t *stream, uint8_t *buf, size_t count)
 
 bool SegmentsStore::InitFromFile(HSV ledsArr[], File &f)
 {
+    if(m_initialized)
+        return false;
+
     // reading the file as stream is memory efficient, as no extra buffer is needed,
     //      and we don't have to commit for the buffer size in advance.
     // however - in a small banchmark i tried, the function call time changed from:
@@ -160,7 +163,7 @@ bool SegmentsStore::InitFromFile(HSV ledsArr[], File &f)
 
     if(!pb_decode(&stream, ControllerObjectsConfig_fields, &message))
     {
-        if(m_errorDesc == NULL)
+        if(m_errorDesc == nullptr)
         {
             m_errorDesc = "error in parsing segments configuration message";
         }
@@ -168,7 +171,7 @@ bool SegmentsStore::InitFromFile(HSV ledsArr[], File &f)
     }
 
     m_initialized = true;
-    m_errorDesc = NULL;
+    m_errorDesc = nullptr;
 
     return true;
 }
