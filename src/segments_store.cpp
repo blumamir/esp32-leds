@@ -4,8 +4,6 @@
 #include <pb_decode.h>
 #include <object_config.pb.h>
 
-typedef std::vector<uint32_t> IndicesVec;
-
 /*
 This callback is called once per index.
 It stores the index at the end of the IndicesVec vector, givin as *arg.
@@ -16,7 +14,7 @@ bool DecodeSegmentIndex_callback(pb_istream_t *stream, const pb_field_t *field, 
     if(stream == NULL || field->tag != Segment_indices_tag)
         return false;
 
-    IndicesVec *arr = (IndicesVec *)(*arg);
+    SegmentsStore::IndicesVec *arr = (SegmentsStore::IndicesVec *)(*arg);
 
     uint32_t index;
     if (!pb_decode_varint32(stream, &index))
@@ -28,9 +26,9 @@ bool DecodeSegmentIndex_callback(pb_istream_t *stream, const pb_field_t *field, 
 
 struct SegmentCallbackData
 {
+    SegmentsStore *segmentsStore;
     HSV *ledsArr;
-    SegmentsStore::SegmentsMap &segmentsMapToFill;
-    IndicesVec &indicesVecStorage;
+    SegmentsStore::IndicesVec &indicesVecStorage;
     const uint32_t *totalPixels;
 };
 
@@ -45,7 +43,7 @@ bool DecodeSegment_callback(pb_istream_t *stream, const pb_field_t *field, void 
         return false;
 
     struct SegmentCallbackData *cbData = (struct SegmentCallbackData *)(*arg);
-    IndicesVec &indicesVecStorage = cbData->indicesVecStorage;
+    SegmentsStore::IndicesVec &indicesVecStorage = cbData->indicesVecStorage;
 
     Segment segment = {};
 
@@ -56,33 +54,52 @@ bool DecodeSegment_callback(pb_istream_t *stream, const pb_field_t *field, void 
     if (!pb_decode(stream, Segment_fields, &segment))
         return false;
 
+    bool addSegmentSuccess = cbData->segmentsStore->AddSegment(std::string(segment.name), cbData->ledsArr, indicesVecStorage, *(cbData->totalPixels));    
+    return addSegmentSuccess;
+}
+
+bool SegmentsStore::ValidateNumberOfPixels(uint32_t totalPixels)
+{
+    if(totalPixels > MAX_SUPPORTED_PIXELS) {
+        m_errorDesc = "total pixels are larger than supported";
+        return false;
+    }
+    if(totalPixels == 0) {
+        m_errorDesc = "total pixels is zero";
+        return false;
+    }
+}
+
+bool SegmentsStore::AddSegment(const std::string &segmentName, HSV ledsArr[], IndicesVec &indicesVecStorage, uint32_t totalPixels)
+{
+    if(!ValidateNumberOfPixels(totalPixels))
+        return false;
+
     size_t numberOfPixelsInSegment = indicesVecStorage.size();
 
     // convert the indices vector, to pixels ptr vector
-    uint32_t totalPixels = *(cbData->totalPixels);
     std::vector<HSV *> *pixelsVecPtr = new std::vector<HSV *>(numberOfPixelsInSegment);
     for(int i=0; i<numberOfPixelsInSegment; i++)
     {
         uint32_t index = indicesVecStorage[i];
-        if(index > totalPixels)
+        if(index >= totalPixels)
         {
-            // out of bound access from the config
+            m_errorDesc = "segment index out of bound ( >= number_of_pixels)";
             return false;
         }
-        HSV *pixelPtr = &(cbData->ledsArr[index]);
+        HSV *pixelPtr = &(ledsArr[index]);
         pixelsVecPtr->at(i) = pixelPtr;
     }
 
     // add this segment to the map
-    std::string segmentName(segment.name);
-    std::pair<SegmentsStore::SegmentsMap::iterator ,bool> insertRes = cbData->segmentsMapToFill.insert({segmentName, pixelsVecPtr});
+    std::pair<SegmentsStore::SegmentsMap::iterator ,bool> insertRes = m_segmentsMap.insert({segmentName, pixelsVecPtr});
     if(!insertRes.second)
     {
-        // failed to insert - object is already in the map!
+        m_errorDesc = "found segment with same name more than once";
         return false;
     }
 
-    return true;    
+    return true;
 }
 
 bool SegmentsStore::InitFromFile(HSV ledsArr[], File &f)
@@ -101,8 +118,8 @@ bool SegmentsStore::InitFromFile(HSV ledsArr[], File &f)
     // describe how to parse the `repeated Segments` field,
     // with callback to the function that does the job, and data it needs
     struct SegmentCallbackData segmentCallbackData = {
+        .segmentsStore = this,
         .ledsArr = ledsArr, 
-        .segmentsMapToFill = m_segmentsMap,
         .indicesVecStorage = indicesVecStorage,
         .totalPixels = &message.number_of_pixels
     };
@@ -111,16 +128,15 @@ bool SegmentsStore::InitFromFile(HSV ledsArr[], File &f)
 
     if(!pb_decode(&stream, ControllerObjectsConfig_fields, &message))
     {
+        if(m_errorDesc == NULL)
+        {
+            m_errorDesc = "error in parsing segments configuration message";
+        }
         return false;
     }
 
-    uint32_t totalPixels = message.number_of_pixels;
-    if(totalPixels > MAX_SUPPORTED_PIXELS) {
-        return false;
-    }
-    if(totalPixels == 0) {
-        return false;
-    }
+    m_initialized = true;
+    m_errorDesc = NULL;
 
     return true;
 }

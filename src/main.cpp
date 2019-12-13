@@ -225,8 +225,8 @@ void ConnectToMessageBroker() {
 
 }
 
-void HandleObjectsConfig(File &f) {
-
+void HandleObjectsConfig(File &f) 
+{
   bool totalSegments = segmentsStore.InitFromFile(leds_hsv, f);
   if(totalSegments)
   {
@@ -234,17 +234,10 @@ void HandleObjectsConfig(File &f) {
   }
   else
   {
-    Serial.println("failed to parse and initialize segments store");
+    Serial.print("failed to parse and initialize segments store. error: ");
+    const char *errorMsg = segmentsStore.GetErrorDescription();
+    Serial.println(errorMsg ? errorMsg : "cannot be determined");
   }
-
-  // int totalPixels = AnimationFactory::InitObjectsConfig(leds_hsv, doc, f);
-  // if(AnimationFactory::objectsMapErrorString == NULL) {
-  //   Serial.print("total pixels: ");
-  //   Serial.println(totalPixels);
-  // } else {
-  //   Serial.print("objects map encountered an error while initializing: ");
-  //   Serial.println(AnimationFactory::objectsMapErrorString);
-  // }
 }
 
 void DeleteAnListPtr() {
