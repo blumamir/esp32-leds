@@ -102,11 +102,37 @@ bool SegmentsStore::AddSegment(const std::string &segmentName, HSV ledsArr[], In
     return true;
 }
 
+bool FileRead_callback(pb_istream_t *stream, uint8_t *buf, size_t count)
+{
+    File *file = (File*)stream->state;
+    bool status;
+
+    if (buf == NULL) // TODO: undertans when this might happen
+    {
+        // Notice - orig code:
+        // while (count-- && fgetc(file) != EOF);
+        // return count == 0; 
+
+        // modified code:
+        bool available = file->available();
+        file->seek(count, SeekCur);
+        return (available == count);
+    }
+
+    size_t bytesRead = file->read(buf, count);
+    status = (bytesRead == count);
+
+    if (file->available() == 0)
+    {
+        stream->bytes_left = 0;
+    }
+
+   return status;
+}
+
 bool SegmentsStore::InitFromFile(HSV ledsArr[], File &f)
 {
-    uint8_t buffer[4096];
-    int msgSize = f.read(buffer, 4096);
-    pb_istream_t stream = pb_istream_from_buffer(buffer, msgSize);
+    pb_istream_t stream = {&FileRead_callback, &f, SIZE_MAX};
 
     ControllerObjectsConfig message = ControllerObjectsConfig_init_zero;
 
