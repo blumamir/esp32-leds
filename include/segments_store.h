@@ -36,6 +36,7 @@ class SegmentsStore
         as vector with pointers to the pixel HSV color
         */
         const std::vector<HSV *> *GetPixelsVecBySegmentName(const std::string &segmentName) const;
+        ssize_t GetNumberOfSegments() const { return m_segmentsMap.size(); }
 
     public:
         bool IsInitialized() const { return m_initialized; }

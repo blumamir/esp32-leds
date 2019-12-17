@@ -232,7 +232,8 @@ void HandleObjectsConfig(File &f)
   bool totalSegments = segmentsStore.InitFromFile(leds_hsv, pbInputStream);
   if(totalSegments)
   {
-    Serial.println("successfully parsed and initialized segments store");
+    Serial.print("successfully parsed and initialized segments store. ");
+    Serial.print("found "); Serial.print(segmentsStore.GetNumberOfSegments()); Serial.println(" segments");
   }
   else
   {
