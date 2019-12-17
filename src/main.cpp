@@ -59,6 +59,10 @@ const int deleteAnListQueueSize = 10;
 QueueHandle_t wdQueue;
 const int wdQueueSize = 10;
 
+void PrintCorePrefix()
+{
+  Serial.print("["); Serial.print(xPortGetCoreID()); Serial.print("]: ");
+}
 
 StaticJsonDocument<40000> doc;
 
@@ -89,6 +93,35 @@ void Core0WdReceive(unsigned int currMillis)
   }
 }
 
+void SendAnListUpdate()
+{
+    NewSongMsg msg;
+    if(songOffsetTracker.IsSongPlaying()) {
+      String currFileName = songOffsetTracker.GetCurrentFile();
+      PrintCorePrefix(); Serial.print("currFileName: ");
+      Serial.println(currFileName);
+      lastReportedSongStartTime = songOffsetTracker.GetSongStartTime();
+      msg.songStartTime = lastReportedSongStartTime;
+      msg.onlyUpdateTime = false;
+      if(msg.songStartTime != 0) {
+        msg.anList = animationsContainer.SetFromJsonFile(currFileName, doc, segmentsStore);
+      }
+      else {
+        PrintCorePrefix(); Serial.println("ignoring an list update since song start time is not valid yet");
+        msg.anList = nullptr;
+      }
+    }
+    else {
+      PrintCorePrefix(); Serial.println("no song is playing");
+      lastReportedSongStartTime = 0;
+      msg.anList = nullptr;
+      msg.songStartTime = 0;
+      msg.onlyUpdateTime = false;
+    }
+
+    xQueueSend(anListQueue, &msg, portMAX_DELAY);
+}
+
 void CheckForSongStartTimeChange()
 {
   if(!songOffsetTracker.IsSongPlaying())
@@ -98,43 +131,21 @@ void CheckForSongStartTimeChange()
   if(currStartTime == lastReportedSongStartTime)
     return;
 
+  if(lastReportedSongStartTime == 0)
+  {
+    // TODO: this is a very patchy and shoud be refactored.
+    // this solves the case where time sync completes after the song status is accepted from mqtt
+    SendAnListUpdate();
+    return;
+  }
   lastReportedSongStartTime = currStartTime;
 
   NewSongMsg msg;
   msg.onlyUpdateTime = true;
   msg.songStartTime = currStartTime;
   msg.anList = nullptr;
-  Serial.println("updateing time of current song start");
+  PrintCorePrefix(); Serial.println("updateing time of current song start");
   xQueueSend(anListQueue, &msg, portMAX_DELAY);
-}
-
-void SendAnListUpdate()
-{
-    NewSongMsg msg;
-    if(songOffsetTracker.IsSongPlaying()) {
-      String currFileName = songOffsetTracker.GetCurrentFile();
-      Serial.print("[0] currFileName: ");
-      Serial.println(currFileName);
-      lastReportedSongStartTime = songOffsetTracker.GetSongStartTime();
-      msg.songStartTime = lastReportedSongStartTime;
-      msg.onlyUpdateTime = false;
-      if(msg.songStartTime != 0) {
-        msg.anList = animationsContainer.SetFromJsonFile(currFileName, doc, segmentsStore);
-      }
-      else {
-        Serial.println("ignoring an list update since song start time is not valid yet");
-        msg.anList = nullptr;
-      }
-    }
-    else {
-      Serial.println("no song is playing");
-      lastReportedSongStartTime = 0;
-      msg.anList = nullptr;
-      msg.songStartTime = 0;
-      msg.onlyUpdateTime = false;
-    }
-
-    xQueueSend(anListQueue, &msg, portMAX_DELAY);
 }
 
 void callback(char* topic, byte* payload, unsigned int length) {
@@ -431,7 +442,7 @@ void loop() {
       }
     }
   }
-  unsigned long renderLoopTime = millis() - currentMillis;
+  // unsigned long renderLoopTime = millis() - currentMillis;
   // Serial.print("loop time ms: ");
   // Serial.println(renderLoopTime);
 
