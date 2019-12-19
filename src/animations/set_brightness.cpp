@@ -10,7 +10,7 @@ void SetBrightnessAnimation::InitFromJson(const JsonObject &animation_params) {
   brightness = FloatAnimationFactory(animation_params["brightness"]);
 }
 
-void SetBrightnessAnimation::Render(float rel_time) {
+void SetBrightnessAnimation::Render(float rel_time, int cycle_index) {
 
     if(brightness == NULL)
         return;

@@ -12,7 +12,7 @@ public:
 
 public:
   void InitFromJson(const JsonObject &animation_params);
-  void Render(float rel_time);
+  void Render(float rel_time, int cycle_index);
 
 private:
   IFloatFunc *start_hue = NULL;

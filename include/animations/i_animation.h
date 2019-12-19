@@ -14,7 +14,7 @@ public:
   virtual void InitFromJson(const JsonObject &animation_params) = 0;
 
 protected:
-  virtual void Render(float rel_time) = 0;
+  virtual void Render(float rel_time, int cycle_index) = 0;
 
   // animation can be notified via this virtual method on a new cycle that starts.
   // each derived class can choose to implement this function if it likes, or just ignore the event
@@ -25,11 +25,12 @@ public:
   void Render(unsigned long curr_time) {
 
     float relTime = ((float)(curr_time - start_time) / (float)(end_time - start_time));
-    if(this->repeatNum > 0.0f) { // has repeats - change relTime
+    int currCycleIndex = 0;
+    if(this->repeatNum > 0.0f) { // has repeats - change relTime and calculate cycle index
 
       float cycleTime = relTime * this->repeatNum;
       float relTimeInCycle = fmod(cycleTime, 1.0f);
-      int currCycleIndex = floor(cycleTime);
+      currCycleIndex = floor(cycleTime);
 
       if(currCycleIndex != this->lastCycleIndex) {
         this->lastCycleIndex = currCycleIndex;
@@ -42,7 +43,7 @@ public:
 
       relTime = (relTimeInCycle - this->repeatStart) / (this->repeatEnd - this->repeatStart);
     }
-    Render(relTime);
+    Render(relTime, currCycleIndex);
   }
 
   void InitAnimation(const std::vector<HSV *> *pixels, const JsonObject &animationAsJsonObj) {

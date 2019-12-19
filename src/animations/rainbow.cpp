@@ -14,7 +14,7 @@ void RainbowAnimation::InitFromJson(const JsonObject &animation_params) {
   end_hue = FloatAnimationFactory(animation_params["endHue"]);
 }
 
-void RainbowAnimation::Render(float rel_time) {
+void RainbowAnimation::Render(float rel_time, int cycle_index) {
 
   if(start_hue == NULL || end_hue == NULL) {
     return;

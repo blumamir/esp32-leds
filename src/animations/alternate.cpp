@@ -15,7 +15,7 @@ void AlternateAnimation::InitFromJson(const JsonObject &animation_params) {
     hueShift = FloatAnimationFactory(animation_params["hueShiftFunc"]);
 }
 
-void AlternateAnimation::Render(float rel_time) {
+void AlternateAnimation::Render(float rel_time, int cycle_index) {
 
     bool currState = alternateState->GetValue(rel_time);
     double currHueShift = hueShift->GetValue(rel_time);

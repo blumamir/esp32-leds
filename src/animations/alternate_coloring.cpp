@@ -15,7 +15,7 @@ void AlternateColoringAnimation::InitFromJson(const JsonObject &animation_params
     numberOfPixels = animation_params["numPix"];
 }
 
-void AlternateColoringAnimation::Render(float rel_time) {
+void AlternateColoringAnimation::Render(float rel_time, int cycle_index) {
 
     int i=0;
     for(std::vector<HSV *>::const_iterator it = pixels->begin(); it != pixels->end(); ++it) {

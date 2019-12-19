@@ -20,7 +20,7 @@ void ConfettiAnimation::InitFromJson(const JsonObject &animation_params) {
     fadeAmount = FloatAnimationFactory(animation_params["fade"]);
 }
 
-void ConfettiAnimation::Render(float rel_time) {
+void ConfettiAnimation::Render(float rel_time, int cycle_index) {
     Fade(rel_time);
 
     for(int i=0; i<pixels->size(); i++) {
@@ -30,6 +30,6 @@ void ConfettiAnimation::Render(float rel_time) {
 }
 
 void ConfettiAnimation::Fade(float relTime) {
-    float currFadeAmount = fadeAmount->GetValue(relTime);
+    // float currFadeAmount = fadeAmount->GetValue(relTime);
     
 }

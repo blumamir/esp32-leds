@@ -20,7 +20,7 @@ void SnakeAnimation::InitFromJson(const JsonObject &animation_params) {
   directionForward = BooleanFuncFactory(animation_params["dir"]);
 }
 
-void SnakeAnimation::Render(float rel_time) {
+void SnakeAnimation::Render(float rel_time, int cycle_index) {
 
     if(headPos == NULL || length == NULL || directionForward == NULL)
         return;

@@ -11,6 +11,7 @@
 #include <animations/confetti.h>
 #include <animations/rand_brightness.h>
 #include <animations/rand_sat.h>
+#include <animations/hue_shift_cycle.h>
 
 #include <Arduino.h>
 
@@ -107,6 +108,8 @@ IAnimation *AnimationFactory::CreateAnimation(const JsonObject &animationAsJsonO
     generated_animation = new RandBrightnessAnimation();
   } else if(strcmp(animation_name, "rand_sat") == 0) {
     generated_animation = new RandSatAnimation();
+  } else if(strcmp(animation_name, "hue_shift_c") == 0) {
+    generated_animation = new HueShiftCycleAnimation();
   } 
   
 

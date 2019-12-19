@@ -10,7 +10,7 @@ void HueShiftAnimation::InitFromJson(const JsonObject &animation_params) {
   shift_amount = FloatAnimationFactory(animation_params["shiftAmount"]);
 }
 
-void HueShiftAnimation::Render(float rel_time) {
+void HueShiftAnimation::Render(float rel_time, int cycle_index) {
 
     if(shift_amount == NULL)
         return;

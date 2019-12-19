@@ -11,7 +11,7 @@ void RandBrightnessAnimation::InitFromJson(const JsonObject &animation_params) {
     RecalculateValues();
 }
 
-void RandBrightnessAnimation::Render(float rel_time) {
+void RandBrightnessAnimation::Render(float rel_time, int cycle_index) {
     for(int i=0; i<pixels->size(); i++) {
         (*pixels)[i]->val *= brightPerPixel[i];
     }

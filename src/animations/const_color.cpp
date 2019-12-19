@@ -9,7 +9,7 @@ void ConstColorAnimation::InitFromJson(const JsonObject &animation_params) {
   colorToFill = HSV(hsvColor);
 }
 
-void ConstColorAnimation::Render(float rel_time) {
+void ConstColorAnimation::Render(float rel_time, int cycle_index) {
   for(std::vector<HSV *>::const_iterator it = pixels->begin(); it != pixels->end(); ++it) {
     HSV *pixel = *it;
     *pixel = colorToFill;

@@ -16,7 +16,7 @@ void FillAnimation::InitFromJson(const JsonObject &animation_params) {
   fillEndPos = FloatAnimationFactory(animation_params["fill_end_pos"]);
 }
 
-void FillAnimation::Render(float rel_time) {
+void FillAnimation::Render(float rel_time, int cycle_index) {
 
     if(fillStartPos == NULL)
         return;
