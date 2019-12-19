@@ -13,7 +13,7 @@ class SongOffsetTracker
 {
     public:
         void setup();
-        void loop();
+        void loop(bool *isClockChanged, bool *clockFirstValid);
 
     public:
         

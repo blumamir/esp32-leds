@@ -51,7 +51,6 @@ struct NewSongMsg {
 };
 QueueHandle_t anListQueue;
 const int anListQueueSize = 10;
-int32_t lastReportedSongStartTime = 0;
 
 QueueHandle_t deleteAnListQueue;
 const int deleteAnListQueueSize = 10;
@@ -100,8 +99,7 @@ void SendAnListUpdate()
       String currFileName = songOffsetTracker.GetCurrentFile();
       PrintCorePrefix(); Serial.print("currFileName: ");
       Serial.println(currFileName);
-      lastReportedSongStartTime = songOffsetTracker.GetSongStartTime();
-      msg.songStartTime = lastReportedSongStartTime;
+      msg.songStartTime = songOffsetTracker.GetSongStartTime();
       msg.onlyUpdateTime = false;
       if(msg.songStartTime != 0) {
         msg.anList = animationsContainer.SetFromJsonFile(currFileName, doc, segmentsStore);
@@ -113,7 +111,6 @@ void SendAnListUpdate()
     }
     else {
       PrintCorePrefix(); Serial.println("no song is playing");
-      lastReportedSongStartTime = 0;
       msg.anList = nullptr;
       msg.songStartTime = 0;
       msg.onlyUpdateTime = false;
@@ -122,27 +119,14 @@ void SendAnListUpdate()
     xQueueSend(anListQueue, &msg, portMAX_DELAY);
 }
 
-void CheckForSongStartTimeChange()
+void SendStartTimeToRenderCore()
 {
   if(!songOffsetTracker.IsSongPlaying())
     return;
 
-  int32_t currStartTime = songOffsetTracker.GetSongStartTime();
-  if(currStartTime == lastReportedSongStartTime)
-    return;
-
-  if(lastReportedSongStartTime == 0)
-  {
-    // TODO: this is a very patchy and shoud be refactored.
-    // this solves the case where time sync completes after the song status is accepted from mqtt
-    SendAnListUpdate();
-    return;
-  }
-  lastReportedSongStartTime = currStartTime;
-
   NewSongMsg msg;
   msg.onlyUpdateTime = true;
-  msg.songStartTime = currStartTime;
+  msg.songStartTime = songOffsetTracker.GetSongStartTime();
   msg.anList = nullptr;
   PrintCorePrefix(); Serial.println("updateing time of current song start");
   xQueueSend(anListQueue, &msg, portMAX_DELAY);
@@ -323,7 +307,6 @@ void MonitorLoop( void * parameter) {
     DeleteAnListPtr();
     ConnectToWifi();
     ConnectToMessageBroker();
-    CheckForSongStartTimeChange();
     unsigned int currTime = millis();
     // Core0WDSend(currTime);
     if (currTime - lastMonitorTime >= 1000) {
@@ -342,7 +325,20 @@ void MonitorLoop( void * parameter) {
       lastReportTime = currTime;
     }
     client.loop();
-    songOffsetTracker.loop();
+
+    bool clockChanged, clockFirstValid;
+    songOffsetTracker.loop(&clockChanged, &clockFirstValid);
+    if(clockChanged)
+    {
+      if(clockFirstValid)
+      {
+        SendAnListUpdate();
+      }
+      else
+      {
+        SendStartTimeToRenderCore();
+      }
+    }
     ArduinoOTA.handle();
 
     vTaskDelay(5);

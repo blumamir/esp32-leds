@@ -15,8 +15,8 @@ void SongOffsetTracker::setup() {
     timesync.setup(timeServerHost, TIME_SYNC_SERVER_PORT);
 }
 
-void SongOffsetTracker::loop() {
-    timesync.loop();
+void SongOffsetTracker::loop(bool *isClockChanged, bool *clockFirstValid) {
+    timesync.loop(isClockChanged, clockFirstValid);
 }
 
 bool SongOffsetTracker::HandleCurrentSongMessage(char *data) {
