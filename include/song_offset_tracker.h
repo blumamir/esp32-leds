@@ -25,7 +25,7 @@ class SongOffsetTracker
         int32_t GetSongStartTime();
 
     private:
-        TimeSync timesync;
+        TimeSync::TimeSyncClient timesync;
 
     private:
         bool isSongPlaying = false;
