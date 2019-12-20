@@ -2,6 +2,7 @@
 
 #include <discrete_float_func/const_discrete_float_func.h>
 #include <discrete_float_func/step_target_discrete_float_func.h>
+#include <discrete_float_func/step_diff_discrete_float_func.h>
 
 IDiscreteFloatFunc *DiscreteFloatFuncFactory(const JsonObject &func_params, float total) {
 
@@ -15,8 +16,8 @@ IDiscreteFloatFunc *DiscreteFloatFuncFactory(const JsonObject &func_params, floa
         func = new ConstDiscreteFloatFunc();
     } else if(strcmp(func_type, "step_target") == 0) {
         func = new StepTargetDiscreteFloatFunc();
-    } else if(strcmp(func_type, "sin") == 0) {
-        // func = new SinFloatFunc();
+    } else if(strcmp(func_type, "step_diff") == 0) {
+        func = new StepDiffDiscreteFloatFunc();
     } else if(strcmp(func_type, "segment") == 0) {
         // func = new SegmentFloatFunc();
     }
