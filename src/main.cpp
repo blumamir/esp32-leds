@@ -31,7 +31,10 @@
 #ifndef MONITOR_TOPIC_PREFIX
 #define MONITOR_TOPIC_PREFIX "monitor"
 #endif // MONITOR_TOPIC_PREFIX
-#define MONITOR_TOPIC MONITOR_TOPIC_PREFIX "/" THING_NAME
+String monitorTopic(MONITOR_TOPIC_PREFIX "/");
+
+#define MAX_THING_NAME_LENGTH 16
+char thing_name[MAX_THING_NAME_LENGTH];
 
 const unsigned int WD_TIMEOUT_MS = 2000;
 
@@ -145,7 +148,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
   Serial.println();
 
   if (strncmp("animations/", topic, 11) == 0) {
-    int songNameStartIndex = 11 + strlen(THING_NAME) + 1;
+    int songNameStartIndex = 11 + strlen(thing_name) + 1;
     String songName = String(topic + songNameStartIndex);
     fsManager.SaveToFs((String("/music/") + songName).c_str(), payload, length);
 
@@ -203,16 +206,16 @@ void ConnectToMessageBroker() {
     client.setServer(MQTT_BROKER_IP, MQTT_BROKER_PORT);
     client.setCallback(callback);
     StaticJsonDocument<128> json_doc;
-    json_doc["ThingName"] = THING_NAME;
+    json_doc["ThingName"] = thing_name;
     json_doc["Alive"] = false;
     char lastWillMsg[128];
     serializeJson(json_doc, lastWillMsg);
-    Serial.println("connecting to mqtt");    
-    if(client.connect(THING_NAME, MONITOR_TOPIC, 1, true, lastWillMsg)) {
+    Serial.println("connecting to mqtt");
+    if(client.connect(thing_name, monitorTopic.c_str(), 1, true, lastWillMsg)) {
         Serial.println("connected to message broker");
-        client.subscribe((String("objects-config/") + String(THING_NAME)).c_str(), 1);
+        client.subscribe((String("objects-config/") + String(thing_name)).c_str(), 1);
         client.subscribe("current-song", 1);
-        client.subscribe((String("animations/") + String(THING_NAME) + String("/#")).c_str(), 1);
+        client.subscribe((String("animations/") + String(thing_name) + String("/#")).c_str(), 1);
     }
     else {
         Serial.print("mqtt connect failed. error state:");
@@ -251,7 +254,7 @@ void DeleteAnListPtr() {
 void SendMonitorMsg(char *buffer, size_t bufferSize) {
 
   StaticJsonDocument<128> json_doc;
-  json_doc["ThingName"] = THING_NAME;
+  json_doc["ThingName"] = thing_name;
   json_doc["Alive"] = true;
   json_doc["WifiSignal"] = WiFi.RSSI();
   serializeJson(json_doc, buffer, bufferSize);
@@ -264,7 +267,7 @@ void MonitorLoop( void * parameter) {
   // ArduinoOTA.setPort(3232);
 
   // Hostname defaults to esp3232-[MAC]
-  ArduinoOTA.setHostname(THING_NAME);
+  ArduinoOTA.setHostname(thing_name);
 
   // No authentication by default
   // ArduinoOTA.setPassword("admin");
@@ -312,7 +315,7 @@ void MonitorLoop( void * parameter) {
     if (currTime - lastMonitorTime >= 1000) {
       char monitorMsg[128];
       SendMonitorMsg(monitorMsg, 128);
-      client.publish(MONITOR_TOPIC, monitorMsg, true);
+      client.publish(monitorTopic.c_str(), monitorMsg, true);
       lastMonitorTime = currTime;
     }
     if(currTime - lastReportTime >= 5000) {
@@ -358,11 +361,18 @@ void setup() {
   deleteAnListQueue = xQueueCreate( deleteAnListQueueSize, sizeof(const AnimationsContainer::AnimationsList *) );
   wdQueue = xQueueCreate( wdQueueSize, sizeof(int) );
 
-  Serial.print("Thing name: ");
-  Serial.println(THING_NAME);
-
   fsManager.setup();
   renderUtils.Setup();
+
+  bool hasThingName = fsManager.ReadThingName(thing_name, MAX_THING_NAME_LENGTH);
+  if(!hasThingName) 
+  {
+    Serial.println("Thing name not configured - upload file to continue");
+    return;
+  }
+  Serial.print("Thing name: "); Serial.println(thing_name);
+  monitorTopic += thing_name;
+  Serial.print("Mqtt monitor topic is: "); Serial.println(thing_name);
 
   File file = SPIFFS.open("/objects-config");
   if(file){

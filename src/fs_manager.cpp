@@ -2,6 +2,8 @@
 
 #include "SPIFFS.h"
 
+#define THING_NAME_FILE_NAME "thing_name"
+
 bool FsManager::setup() {
   if (!SPIFFS.begin(true)) {
     Serial.println("An Error has occurred while mounting SPIFFS");
@@ -9,6 +11,31 @@ bool FsManager::setup() {
   }
 
   return true;
+}
+
+bool FsManager::ReadThingName(char *destBuffer, int bufferLength)
+{
+    File file = SPIFFS.open("/" THING_NAME_FILE_NAME, FILE_READ);
+    if(!file)
+    {
+      Serial.print("could not find thing name file at "); Serial.println(THING_NAME_FILE_NAME);
+      return false;
+    }
+
+    size_t numOfChars = file.read((uint8_t *)destBuffer, bufferLength - 1);
+    if(numOfChars == 0)
+    {
+      Serial.println("thing name file is empty");
+      file.close();
+      return false;
+    }
+
+    // make sure the file is NULL terminated
+    destBuffer[numOfChars] = NULL;
+    destBuffer[bufferLength - 1] = NULL;
+
+    file.close();
+    return true;
 }
 
 bool FsManager::SaveToFs(const char *path, const uint8_t *payload, unsigned int length) {

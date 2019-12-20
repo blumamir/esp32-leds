@@ -10,6 +10,7 @@ public:
     bool setup();
 
 public:
+    bool ReadThingName(char *destBuffer, int bufferLength);
     bool SaveToFs(const char *path, const uint8_t *payload, unsigned int length);
     unsigned int ReadFromFs(const char *path, uint8_t *buffer, unsigned int length);
 };
