@@ -18,6 +18,7 @@
 #include <protobuf_infra.h>
 
 #include "SPIFFS.h"
+#include <WebServer.h>
 
 #ifndef NUM_LEDS
 #warning NUM_LEDS not definded. using default value of 300
@@ -46,6 +47,8 @@ FsManager fsManager;
 SegmentsStore segmentsStore;
 
 TaskHandle_t Task1;
+
+WebServer server(80);
 
 struct NewSongMsg {
   bool onlyUpdateTime;
@@ -260,9 +263,21 @@ void SendMonitorMsg(char *buffer, size_t bufferSize) {
   serializeJson(json_doc, buffer, bufferSize);
 }
 
+void handle_Prometheus() {
+  Serial.println("got client http");
+  char buf[1024];
+  sprintf(buf, "wifi_signal_strength %d\nuptime %d\nfree_heap %d\n", WiFi.RSSI(), millis(), esp_get_free_heap_size());
+  // String metric1 = String("wifi_signal_strength: ") + WiFi.RSSI() + "\n";
+  server.send(200, "text/plain", buf);
+}
+
 void MonitorLoop( void * parameter) {
 
   ConnectToWifi();
+
+  server.begin();
+  server.on("/metrics", handle_Prometheus);
+
   // Port defaults to 3232
   // ArduinoOTA.setPort(3232);
 
@@ -304,6 +319,9 @@ void MonitorLoop( void * parameter) {
 
   ArduinoOTA.begin();
   songOffsetTracker.setup();
+  MDNS.addService("prometheus-http", "tcp", 80); // Announce esp tcp service on port 80
+  MDNS.addService("http", "tcp", 80);
+
   unsigned int lastReportTime = millis();
   unsigned int lastMonitorTime = millis();
   for(;;) {
@@ -343,6 +361,8 @@ void MonitorLoop( void * parameter) {
       }
     }
     ArduinoOTA.handle();
+
+    server.handleClient();
 
     vTaskDelay(5);
   }
