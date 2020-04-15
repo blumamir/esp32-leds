@@ -19,6 +19,20 @@
 
 #include "SPIFFS.h"
 #include <WebServer.h>
+#include <InfluxDbClient.h>
+// InfluxDB  server url. Don't use localhost, always server name or ip address.
+// For InfluxDB 1 e.g. http://192.168.1.48:8086
+#define INFLUXDB_URL "http://10.0.0.200:8086"
+// InfluxDB v1 database name 
+#define INFLUXDB_DB_NAME "kivsee"
+// InfluxDB v1 username
+//#define INFLUXDB_USER "kivsee"
+// InfluxDB v1 password
+//#define INFLUXDB_PASSWORD "kivsee12"
+// InfluxDB client instance for InfluxDB 1
+InfluxDBClient influxClient(INFLUXDB_URL, INFLUXDB_DB_NAME);
+// Data point
+Point sensor("wifi_status");
 
 #ifndef NUM_LEDS
 #warning NUM_LEDS not definded. using default value of 300
@@ -322,8 +336,24 @@ void MonitorLoop( void * parameter) {
   MDNS.addService("prometheus-http", "tcp", 80); // Announce esp tcp service on port 80
   MDNS.addService("http", "tcp", 80);
 
+  // Set InfluxDB 1 authentication params
+  //influxClient.setConnectionParamsV1(INFLUXDB_URL, INFLUXDB_DB_NAME, INFLUXDB_USER, INFLUXDB_PASSWORD);
+  // Add constant tags - only once
+  sensor.addTag("device", thing_name);
+  //sensor.addTag("SSID", WiFi.SSID());
+
+  // Check server connection
+  if (influxClient.validateConnection()) {
+    Serial.print("Connected to InfluxDB: ");
+    Serial.println(influxClient.getServerUrl());
+  } else {
+    Serial.print("InfluxDB connection failed: ");
+    Serial.println(influxClient.getLastErrorMessage());
+  }
+
   unsigned int lastReportTime = millis();
   unsigned int lastMonitorTime = millis();
+  unsigned int lastUpdateDBTime = millis();
   for(;;) {
     DeleteAnListPtr();
     ConnectToWifi();
@@ -346,6 +376,25 @@ void MonitorLoop( void * parameter) {
       lastReportTime = currTime;
     }
     client.loop();
+
+    // influxDB write
+    if (currTime - lastUpdateDBTime >= 3000) {
+      // Store measured value into point
+      sensor.clearFields();
+      // Report RSSI of currently connected network
+      sensor.addField("rssi", WiFi.RSSI());
+      sensor.addField("uptime", millis());
+      sensor.addField("free heap", esp_get_free_heap_size());
+      // Print what are we exactly writing
+      Serial.print("Writing: ");
+      Serial.println(sensor.toLineProtocol());
+      // Write point
+      if (!influxClient.writePoint(sensor)) {
+        Serial.print("InfluxDB write failed: ");
+        Serial.println(influxClient.getLastErrorMessage());
+      }
+      lastUpdateDBTime = currTime;
+    }
 
     bool clockChanged, clockFirstValid;
     songOffsetTracker.loop(&clockChanged, &clockFirstValid);
